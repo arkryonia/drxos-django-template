@@ -10,32 +10,53 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+import environ
 import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = environ.Path(__file__) - 3  # (/a/b/myfile.py - 3 = /)
+APPS_DIR = PROJECT_ROOT.path('{{ project_name }}')
 
+
+env = environ.Env()
+
+DEBUG = env.bool("DJANGO_DEBUG", False)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "{{ secret_key }}"
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-# Application definition
-
-INSTALLED_APPS = (
-    'django.contrib.admin',
+# APP CONFIGURATION
+# ------------------------------------------------------------------------------
+DJANGO_APPS = (
+    # Default Django apps:
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Useful template tags:
+    # 'django.contrib.humanize',
+
+    # Admin
+    'django.contrib.admin',
 )
+THIRD_PARTY_APPS = (
+    'crispy_forms',  # Form layouts
+    'allauth',  # registration
+    'allauth.account',  # registration
+    'allauth.socialaccount',  # registration
+)
+
+# Apps specific for this project go here.
+LOCAL_APPS = (
+    #'{{ project_name }}.users',  # custom users app
+    # Your stuff: custom apps go here
+)
+
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -48,7 +69,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
 )
 
-ROOT_URLCONF = '{{ project_name }}.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = (
     {
@@ -67,18 +88,21 @@ TEMPLATES = (
     },
 )
 
-WSGI_APPLICATION = '{{ project_name}}.wsgi.application'
+WSGI_APPLICATION = '{{ project_name }}.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+    # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
+    'default': env.db("DATABASE_URL", default="postgres:///{{ project_name }}"),
 }
+DATABASES['default']['ATOMIC_REQUESTS'] = True
+
+# DEBUG
+# ------------------------------------------------------------------------------
+DEBUG = env.bool("DJANGO_DEBUG", False)
+
 
 AUTH_PASSWORD_VALIDATORS = (
     {
@@ -104,9 +128,6 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# Update database configuration with $DATABASE_URL.
-db_from_env = dj_database_url.config(conn_max_age=500)
-DATABASES['default'].update(db_from_env)
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -117,12 +138,12 @@ ALLOWED_HOSTS = ['*']
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
-STATIC_ROOT = os.path.join(PROJECT_ROOT, 'staticfiles')
+STATIC_ROOT = str(PROJECT_ROOT.path('staticfiles'))
 STATIC_URL = '/static/'
 
 # Extra places for collectstatic to find static files.
 STATICFILES_DIRS = [
-    os.path.join(PROJECT_ROOT, 'static'),
+    str(PROJECT_ROOT.path('static'))
 ]
 
 # Simplified static file serving.
